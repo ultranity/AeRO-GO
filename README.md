@@ -68,10 +68,13 @@ aeroc --tag <client tag> --server=<server_ip:port> --target <alias_name@local_ip
 ## 子域名映射
 当设置 --mux 参数时,Server节点会启动一个http服务,用于子域名映射, 如同时设置 --domain 参数,则会使用子域名的方式映射，如：`<tag>.<name>.<domain>/*` 将被映射为 由 tag 标识的 Worker 节点的 name 别名的服务
 
-否则使用路径参数，如：localhost:4000/aero/0/<实际路径参数>
+否则使用路径参数，如：`localhost:4000/<tag>/<name>/*`
 
 当存在多个相同tag Worker节点时，将会采用roundrubin方案选择一个节点进行负载均衡
+### 指定client
+server分配的Client ID不重复，同理可以使用 Client ID 代替`<tag>`指定单个Worker节点
 
+为做区分，需在末尾附加#号，即 `<tag> = <cid>@`
 ## 身份认证
 默认为空，使用 --auth 参数设置简易验证，Server节点与Worker节点需要使用相同的认证码才能建立连接
 

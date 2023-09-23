@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	base62      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	base62      = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	idxBits     = 6              // 6 bits to represent a letter index
 	idxMask     = 1<<idxBits - 1 // All 1-bits, as many as letterIdxBits
 	idxMax      = 63 / idxBits   // # of letter indices fitting in 63 bits
@@ -40,7 +40,7 @@ func RandStr(n int) string {
 
 var buf8 = make([]byte, 8)
 
-// warn: 由于采用取余数的方式，会导致生成的字符串不够随机(概率为1/62^10)
+// warn: 由于采用取余数的方式，会导致生成的字符串不是完全随机（但足够随机）
 func RandStr8Base62() string {
 	remain := 2
 	for i, cache := 7, src.Int63(); i >= 0; {
@@ -51,7 +51,7 @@ func RandStr8Base62() string {
 				cache >>= idxBits
 				continue
 			} else {
-				idx = idx % len(base62)
+				idx = (idx + (idx-61)*i) % len(base62)
 			}
 		}
 		buf8[i] = base62[idx]

@@ -50,6 +50,29 @@ func (r *RoundRobin) update(pool []string) string {
 	return result
 }
 
+func (server *Server) selectPort(tag string, name string) (selected string) {
+	if strings.HasSuffix(tag, "@") {
+		tag = strings.TrimSuffix(tag, "@")
+		if mgr, ok := server.managers[tag]; ok {
+			if proxy, ok := mgr.Proxies[name]; ok {
+				selected = proxy.Port
+			}
+		}
+	} else {
+		avail := util.MapFiltered(server.filterManagers([]string{tag}), func(mgr *Manager) (string, bool) {
+			if proxy, ok := mgr.Proxies[name]; ok {
+				return proxy.Port, true
+			}
+			return "", false
+		})
+		if len(avail) == 0 {
+			return ""
+		}
+		selected = GetRobin(tag).update(avail)
+	}
+	return
+}
+
 func (server *Server) MuxServer(addr string, domain string) {
 	if addr == "" {
 		return
@@ -60,17 +83,13 @@ func (server *Server) MuxServer(addr string, domain string) {
 	if domain == "" {
 		app.Use("/:tag/:name/*", func(c *fiber.Ctx) error {
 			tag, name := c.Params("tag"), c.Params("name")
-			avail := util.Map(server.filterManagers([]string{tag}), func(mgr *Manager) string {
-				return mgr.Proxies[name].Port
-			})
-			if len(avail) == 0 {
+			selected := server.selectPort(tag, name)
+			if selected == "" {
 				c.SendStatus(404)
 				return nil
 			}
-
-			selected := GetRobin(tag).update(avail)
-			selected = c.Protocol() + "://localhost:" + selected
 			target := strings.TrimPrefix(c.OriginalURL(), "/"+tag+"/"+name)
+			selected = c.Protocol() + "://localhost:" + selected
 			c.Request().Header.Add("X-Real-IP", c.IP())
 			if err := proxy.Do(c, selected+target); err != nil {
 				return err
@@ -84,15 +103,13 @@ func (server *Server) MuxServer(addr string, domain string) {
 			host := strings.TrimSuffix(c.Hostname(), domain)
 			tagname := util.SplitX(host, ".")
 			tag, name := tagname[0], tagname[1]
-			avail := util.Map(server.filterManagers([]string{tag}), func(mgr *Manager) string {
-				return mgr.Proxies[name].Port
-			})
-			if len(avail) == 0 {
+			selected := server.selectPort(tag, name)
+			if selected == "" {
 				c.SendStatus(404)
 				return nil
 			}
-			selected := c.Protocol() + "://localhost:" + GetRobin(tag).update(avail)
 			target := c.OriginalURL()
+			selected = c.Protocol() + "://localhost:" + selected
 			c.Request().Header.Add("X-Real-IP", c.IP())
 			if err := proxy.Do(c, selected+target); err != nil {
 				return err

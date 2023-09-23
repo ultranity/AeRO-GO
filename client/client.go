@@ -96,7 +96,7 @@ func (client *Client) NewPipeConn() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	msg := &message.PipeMessage{
+	msg := &message.PipeRequest{
 		ClientId: client.ClientId,
 	}
 	err = message.Send(msg, stream)

@@ -72,7 +72,7 @@ func (proxy *Proxy) handle(conn net.Conn) {
 		//send work request
 		srcIp, srcPort, _ := net.SplitHostPort(conn.RemoteAddr().String())
 		dstIp, dstPort, _ := net.SplitHostPort(conn.LocalAddr().String())
-		req := &message.WorkMessage{
+		req := &message.ConnRequest{
 			ProxyName: proxy.Name,
 			SrcIp:     srcIp,
 			SrcPort:   srcPort,

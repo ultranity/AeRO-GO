@@ -157,7 +157,7 @@ func (manager *Manager) RemoveProxy(req *message.ProxyRequest) {
 }
 
 func (manager *Manager) ReqPipeConn() error {
-	req := &message.PipeMessage{}
+	req := &message.PipeRequest{}
 	err := manager.SendMassage(req)
 	if err != nil {
 		log.Error().Msgf("%s failed to send pipe req", manager.ClientId)

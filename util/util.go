@@ -22,12 +22,39 @@ func Map[T interface{}, R interface{}](elements []T, fn func(T) R) (result []R) 
 	for _, e := range elements {
 		result = append(result, fn(e))
 	}
-	return result
+	return
 }
 
 func MapIndexed[T interface{}, R interface{}](elements []T, fn func(int, T) R) (result []R) {
 	for i, e := range elements {
 		result = append(result, fn(i, e))
 	}
-	return result
+	return
+}
+
+func MapFiltered[T interface{}, R interface{}](elements []T, fn func(T) (R, bool)) (result []R) {
+	for _, e := range elements {
+		if r, ok := fn(e); ok {
+			result = append(result, r)
+		}
+	}
+	return
+}
+func Filter[T interface{}](elements []T, fn func(T) bool) (result []T) {
+	for _, e := range elements {
+		if fn(e) {
+			result = append(result, e)
+		}
+	}
+	return
+}
+
+func CheckLegal(s string) bool {
+	for _, r := range s {
+		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') &&
+			(r < '0' || r > '9') && (r != '-') && (r != '_') {
+			return false
+		}
+	}
+	return true
 }

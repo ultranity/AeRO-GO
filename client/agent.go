@@ -95,7 +95,7 @@ func (agent *Agent) Run() {
 				return
 			}
 			switch v := msg.(type) {
-			case *message.PipeMessage:
+			case *message.PipeRequest:
 				go agent.awaitWork()
 			case *message.ProxyResponse:
 				if v.Result == "ok" {
@@ -148,7 +148,7 @@ func (agent *Agent) awaitWork() {
 		log.Debug().Msgf("work closed %s", err)
 		return
 	}
-	req, ok := msg.(*message.WorkMessage)
+	req, ok := msg.(*message.ConnRequest)
 	if !ok {
 		return
 	}

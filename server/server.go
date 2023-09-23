@@ -105,7 +105,7 @@ func (server *Server) HandleStream(stream *yamux.Stream) {
 
 	switch v := msg.(type) {
 	case *message.LoginRequest:
-		err := server.Login(v)
+		err := server.CheckLogin(v)
 		if err != nil {
 			resp := &message.LoginResponse{
 				Result: fmt.Sprintf("login fail:%s", err),
@@ -121,7 +121,7 @@ func (server *Server) HandleStream(stream *yamux.Stream) {
 			Result:   "ok",
 		}
 		message.Send(resp, stream)
-	case *message.PipeMessage:
+	case *message.PipeRequest:
 		server.mutex.RLock()
 		mgr, ok := server.managers[v.ClientId]
 		server.mutex.RUnlock()
@@ -136,9 +136,12 @@ func (server *Server) HandleStream(stream *yamux.Stream) {
 	}
 }
 
-func (server *Server) Login(req *message.LoginRequest) error {
+func (server *Server) CheckLogin(req *message.LoginRequest) error {
 	if server.config.AuthCode != req.AuthCode {
 		return errors.New("auth code error")
+	}
+	if !util.CheckLegal(req.Tag) {
+		return errors.New("tag not match /a-zA-Z0-9_-/")
 	}
 	//todo: compare version
 
@@ -180,10 +183,10 @@ func (server *Server) awaitManagerDone() {
 	}
 }
 
-func (server *Server) filterManagers(tags []string) (ret []*Manager) {
+func (server *Server) filterManagers(tags []string) (result []*Manager) {
 	for _, mgr := range server.managers {
 		if len(tags) == 0 || slices.Contains(tags, mgr.Tag) {
-			ret = append(ret, mgr)
+			result = append(result, mgr)
 		}
 	}
 	return

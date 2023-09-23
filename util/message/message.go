@@ -20,23 +20,21 @@ const (
 	TypeProxy     = 'p'
 	TypeHeartbeat = 'h'
 	TypePipe      = 'q'
-	TypeWork      = 'w'
+	TypeConn      = 'w'
 )
 
 var TypeReqMap = map[byte]interface{}{
 	TypeHeartbeat: HeartbeatRequest{},
 	TypeLogin:     LoginRequest{},
 	TypeProxy:     ProxyRequest{},
-	TypePipe:      PipeMessage{},
-	TypeWork:      WorkMessage{},
+	TypePipe:      PipeRequest{},
+	TypeConn:      ConnRequest{},
 }
 
 var TypeRespMap = map[byte]interface{}{
 	TypeHeartbeat: HeartbeatResponse{},
 	TypeLogin:     LoginResponse{},
 	TypeProxy:     ProxyResponse{},
-	TypePipe:      PipeMessage{},
-	TypeWork:      WorkMessage{},
 }
 
 type Message interface{}
@@ -82,11 +80,11 @@ type HeartbeatResponse struct {
 	TimeRecv int64 `json:"t_recv,omitempty"`
 }
 
-type PipeMessage struct {
+type PipeRequest struct {
 	ClientId string `json:"cid,omitempty"`
 }
 
-type WorkMessage struct {
+type ConnRequest struct {
 	ProxyName string `json:"name,omitempty"`
 	SrcIp     string `json:"src_ip,omitempty"`
 	SrcPort   string `json:"src_port,omitempty"`
@@ -95,7 +93,7 @@ type WorkMessage struct {
 }
 
 /*
-message: [<|>:1 byte] + [code:1 byte] + [length:4 byte] + [data:(length)]
+message: [<|>:1 byte] + [type code:1 byte] + [length:4 byte] + [data:(length)]
 "<" : request
 ">" : response
 */
@@ -141,17 +139,17 @@ func Get(reader io.Reader) (Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	var any interface{}
+	var mtype interface{}
 	var ok bool
 	if flag == RequestFlag {
-		any, ok = TypeReqMap[typ]
+		mtype, ok = TypeReqMap[typ]
 	} else if flag == ResponseFlag {
-		any, ok = TypeRespMap[typ]
+		mtype, ok = TypeRespMap[typ]
 	}
 	if !ok {
 		return nil, fmt.Errorf("unknown Message Type %q %q %s", flag, typ, data)
 	}
-	msg := reflect.New(reflect.TypeOf(any)).Interface()
+	msg := reflect.New(reflect.TypeOf(mtype)).Interface()
 	err = json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, err
@@ -159,12 +157,12 @@ func Get(reader io.Reader) (Message, error) {
 	return msg, nil
 }
 
-func Send(any Message, writer io.Writer) error {
-	flag, typ, err := getMsgInfo(any)
+func Send(msg Message, writer io.Writer) error {
+	flag, typ, err := getMsgInfo(msg)
 	if err != nil {
 		return err
 	}
-	data, err := json.Marshal(any)
+	data, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
@@ -191,12 +189,12 @@ func getMsgInfo(msg Message) (flag byte, typ byte, err error) {
 	case *ProxyResponse:
 		flag = ResponseFlag
 		typ = TypeProxy
-	case *PipeMessage:
+	case *PipeRequest:
 		flag = RequestFlag
 		typ = TypePipe
-	case *WorkMessage:
+	case *ConnRequest:
 		flag = RequestFlag
-		typ = TypeWork
+		typ = TypeConn
 	default:
 		err = ErrUnknownMsg
 	}
