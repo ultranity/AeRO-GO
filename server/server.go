@@ -15,7 +15,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
-	"github.com/hashicorp/yamux"
+	"github.com/libp2p/go-yamux/v4"
+
 	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/slices"
 )
@@ -77,7 +78,7 @@ func (server *Server) Run() error {
 func (server *Server) Handle(conn net.Conn) {
 	cfg := yamux.DefaultConfig()
 	cfg.LogOutput = io.Discard
-	session, err := yamux.Server(conn, cfg)
+	session, err := yamux.Server(conn, cfg, nil)
 	if err != nil {
 		log.Warn().Msgf("Create yamux session fail:%s", err)
 		return
@@ -207,6 +208,7 @@ func (server *Server) ApiServer(addr string) {
 
 	app := fiber.New()
 	app.Use(compress.New())
+	//app.Use(pprof.New())
 	app.Get("/metrics", monitor.New())
 
 	app.Get("/health", func(c *fiber.Ctx) error {

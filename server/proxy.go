@@ -85,8 +85,8 @@ func (proxy *Proxy) handle(conn net.Conn) {
 			continue
 		}
 		//connect join pipe
-		pipe.Join(conn, pipeConn)
-		log.Debug().Msgf("work done:%s", req)
+		rn, wn, _, _ := pipe.Join(pipeConn, conn)
+		log.Info().Msgf("work done:%s, [r:%d,w:%d]", req, rn, wn)
 		return
 	}
 }

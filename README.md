@@ -124,6 +124,7 @@ server分配的Client ID不重复，同理可以使用 Client ID 代替`<tag>`�
 问题层级不同
 
 ## Deps
-- yamux as connection multiplexer
+- go-yamux v4 as connection multiplexer
 - fiber as api/http server
 - zerolog as logger
+- ants as goroutine pool

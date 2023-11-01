@@ -81,6 +81,9 @@ func main() {
 			zlog.SetOutput(file)
 		}
 	}
+	//go func() {
+	//	log.Err(http.ListenAndServe("localhost:6060", nil))
+	//}()
 	client := NewClient(cfg)
 	err := client.Run()
 	if err != nil {

@@ -20,6 +20,8 @@ type Proxy struct {
 	Type       string
 	LocalAddr  string
 	RemotePort string
+	wn         int64
+	rn         int64
 	Started    bool
 }
 
@@ -170,8 +172,10 @@ func (agent *Agent) awaitWork() {
 		log.Error().Msgf("proxy %s@%s connect fail:%s", req.ProxyName, proxy.LocalAddr, err)
 		return
 	}
-	pipe.Join(conn, dstConn)
-	log.Info().Msgf("work done:%s", req)
+	rn, wn, _, _ := pipe.Join(conn, dstConn)
+	log.Info().Msgf("work done:%s, [r:%d,w:%d]", req, rn, wn)
+	proxy.wn += wn
+	proxy.rn += rn
 }
 
 func (agent *Agent) RegisterProxy(proxy *Proxy) error {
@@ -207,20 +211,19 @@ func (agent *Agent) awaitReceive() {
 		if msg, err := message.Get(agent.conn); err != nil {
 			if err == io.EOF {
 				log.Debug().Msgf("agent connect closed")
-				agent.Close()
-				return
 			} else {
 				log.Warn().Msgf("get message error:%s", err)
 			}
 			break
 		} else {
 			if agent.IsClosed() {
-				log.Debug().Msgf(fmt.Sprint("agent recved but closed:", msg))
+				log.Debug().Msgf(fmt.Sprint("agent received but closed:", msg))
 				break
 			}
 			agent.recvChan <- msg
 		}
 	}
+	agent.Close()
 }
 
 func (agent *Agent) awaitSend() {
@@ -231,10 +234,11 @@ func (agent *Agent) awaitSend() {
 		}
 		err := message.Send(msg, agent.conn)
 		if err != nil {
-			log.Error().Msgf("send message error:%s", err)
+			log.Error().Msgf("send message %s error:%s", msg, err)
 			break
 		}
 	}
+	agent.Close()
 }
 
 func (agent *Agent) IsClosed() bool {

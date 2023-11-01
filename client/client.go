@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net"
@@ -9,7 +10,7 @@ import (
 
 	"AeRO/proxy/util/message"
 
-	"github.com/hashicorp/yamux"
+	"github.com/libp2p/go-yamux/v4"
 	"github.com/rs/zerolog/log"
 )
 
@@ -45,8 +46,10 @@ func (client *Client) Run() error {
 
 	for {
 		tryCount += 1
-		if tryCount > 5 {
-			return errors.New("login fail for 5 times")
+		if tryCount%10 == 0 {
+			log.Error().Msgf("login fail for %d times", tryCount)
+			//tryCount = 0
+			time.Sleep(time.Second * time.Duration(tryCount*2))
 		}
 		conn, err := client.connectServer()
 		if err == nil {
@@ -64,7 +67,7 @@ func (client *Client) Run() error {
 		} else {
 			log.Warn().Msgf("connect server fail:%s", err)
 		}
-		log.Info().Msgf("try again after 6 second [%d/5]", tryCount)
+		log.Info().Msgf("try again after 6 second [%d/10]", tryCount)
 		time.Sleep(time.Second * 6)
 	}
 }
@@ -78,21 +81,19 @@ func (client *Client) connectServer() (net.Conn, error) {
 
 	cfg := yamux.DefaultConfig()
 	cfg.LogOutput = io.Discard
-	session, err := yamux.Client(conn, cfg)
+	//cfg.EnableKeepAlive = true
+	session, err := yamux.Client(conn, cfg, nil)
 	if err != nil {
 		return nil, err
 	}
 	client.session = session
-	stream, err := session.OpenStream()
-	if err != nil {
-		return nil, err
-	}
-	return stream, nil
+	stream, err := session.OpenStream(context.TODO())
+	return stream, err
 }
 
 func (client *Client) NewPipeConn() (net.Conn, error) {
 	log.Debug().Msgf("create new pipe connect")
-	stream, err := client.session.OpenStream()
+	stream, err := client.session.OpenStream(context.TODO())
 	if err != nil {
 		return nil, err
 	}
