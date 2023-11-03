@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"sync"
 	"time"
 
+	"AeRO/proxy/netstat"
 	"AeRO/proxy/util"
 	"AeRO/proxy/util/message"
 
@@ -119,7 +121,12 @@ func (manager *Manager) Run() {
 }
 
 func (manager *Manager) RegisterProxy(req *message.ProxyRequest) *message.ProxyResponse {
-	proxy, err := NewProxy(req.Name, req.Port, req.Target, manager)
+	port, err := strconv.Atoi(req.Port)
+	if err != nil {
+		port = 0
+	}
+	port = netstat.FindAvailablePort(port)
+	proxy, err := NewProxy(req.Name, strconv.Itoa(port), req.Target, manager)
 	if err != nil {
 		resp := &message.ProxyResponse{
 			Result: fmt.Sprintf("register proxy error:%s", err),

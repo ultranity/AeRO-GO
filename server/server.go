@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"AeRO/proxy/netstat"
 	"AeRO/proxy/util"
 	"AeRO/proxy/util/message"
 
@@ -28,6 +29,10 @@ type ServerConfig struct {
 	LogFile  string
 	Debug    bool
 
+	startPort  int
+	endPort    int
+	forceRange bool
+
 	Api     string
 	MuxAddr string
 	Domain  string
@@ -43,6 +48,7 @@ type Server struct {
 }
 
 func NewServer(config *ServerConfig) *Server {
+	netstat.SetPortRange(config.startPort, config.endPort, config.forceRange)
 	srv := &Server{
 		config:   config,
 		address:  net.JoinHostPort(config.Ip, config.Port),

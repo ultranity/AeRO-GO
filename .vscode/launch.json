@@ -18,7 +18,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "client",
-            "args": ["--debug","--target=filemgr@localhost:5000"]
+            "args": ["--server=8.134.92.6:5000","--debug","--target=filemgr@localhost:5000"]
         }
     ]
 }

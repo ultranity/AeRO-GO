@@ -1,0 +1,8 @@
+*~
+*.bak
+
+**/.envrc
+**/.DS_Store
+
+/netstat
+/cmd/netstat/netstat
