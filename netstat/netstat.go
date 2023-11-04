@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+
+	"github.com/RoaringBitmap/roaring"
 )
 
 // SockAddr represents an ip:port pair
@@ -115,8 +117,45 @@ func SockPort(e SockTabEntry) uint16 { return e.LocalAddr.Port }
 
 type Set[T comparable] map[T]struct{}
 
+func GetAllPortSet(accept AcceptFn) []uint16 {
+	ports := roaring.New()
+	portSet, err := osPorts("tcp", accept)
+	if err != nil {
+		return nil
+	}
+	for _, v := range portSet {
+		ports.Add(uint32(v))
+	}
+
+	portSet, err = osPorts("tcp6", accept)
+	if err != nil {
+		return util.Map(ports.ToArray(), func(v uint32) uint16 { return uint16(v) })
+	}
+	for _, v := range portSet {
+		ports.Add(uint32(v))
+	}
+
+	portSet, err = osPorts("udp", accept)
+	if err != nil {
+		return util.Map(ports.ToArray(), func(v uint32) uint16 { return uint16(v) })
+	}
+	for _, v := range portSet {
+		ports.Add(uint32(v))
+	}
+
+	portSet, err = osPorts("udp6", accept)
+	if err != nil {
+		return util.Map(ports.ToArray(), func(v uint32) uint16 { return uint16(v) })
+	}
+	for _, v := range portSet {
+		ports.Add(uint32(v))
+	}
+
+	return util.Map(ports.ToArray(), func(v uint32) uint16 { return uint16(v) })
+}
+
 func GetAllPorts(accept AcceptFn) []uint16 {
-	ports := make([]uint16, 0, 65535)
+	var ports = make([]uint16, 0, 16)
 	portSet, err := osPorts("tcp", accept)
 	if err != nil {
 		return nil
@@ -126,12 +165,13 @@ func GetAllPorts(accept AcceptFn) []uint16 {
 
 	portSet, err = osPorts("tcp6", accept)
 	if err != nil {
-		return portSet
+		ports = util.DeDuplicate(ports)
+		return ports
 	}
 	//portSet = util.DeDuplicate(portSet)
 	ports = append(ports, portSet...)
 
-	//portSet, err = osPorts("udp", accept)
+	portSet, err = osPorts("udp", accept)
 	if err != nil {
 		ports = util.DeDuplicate(ports)
 		return ports
@@ -148,7 +188,7 @@ func GetAllPorts(accept AcceptFn) []uint16 {
 	ports = append(ports, portSet...)
 
 	ports = util.DeDuplicate(ports)
-	return portSet
+	return ports
 }
 
 func ToPorts(s []SockTabEntry) []uint16 {
