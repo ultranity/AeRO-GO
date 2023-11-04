@@ -3,6 +3,7 @@ package netstat
 import (
 	"AeRO/proxy/util"
 	"fmt"
+	"math/rand"
 	"net"
 	"strconv"
 
@@ -219,30 +220,49 @@ func FindOneAvailablePort(startPort, endPort int) (int, error) {
 var sPort, ePort int
 var force bool = false
 
+var randPool chan int
+
+func randInts(start, end int) chan int {
+	yield := make(chan int, 8)
+	count := 0
+	length := end - start
+	go func() {
+		for {
+			ints := rand.Perm(length)
+			for _, v := range ints {
+				yield <- start + v
+			}
+			count++
+		}
+	}()
+	return yield
+}
+
 func SetPortRange(startPort, endPort int, forceRange bool) {
 	sPort = startPort
 	ePort = endPort
 	force = forceRange
+	randPool = randInts(startPort, endPort)
 }
 
 func FindAvailablePort(init int) int {
+	if force {
+		if init < sPort || init > ePort {
+			init = 0
+		}
+	}
 	if init > 0 {
-		if force {
-			if init < sPort || init > ePort {
-				init = 0
-			}
-		} else {
-			address := ":" + strconv.Itoa(init)
-			listener, err := net.Listen("tcp", address)
-			if err == nil {
-				listener.Close()
-				return init
-			}
+		address := ":" + strconv.Itoa(init)
+		listener, err := net.Listen("tcp", address)
+		if err == nil {
+			listener.Close()
+			return init
 		}
 	} else {
 		init = sPort
 	}
-	for port := init; port <= ePort; port++ {
+	for i := init; i <= ePort; i++ {
+		port := <-randPool
 		address := ":" + strconv.Itoa(port)
 		listener, err := net.Listen("tcp", address)
 		if err == nil {
